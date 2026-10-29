@@ -1,0 +1,12 @@
+# Krai average over 24 district centres (Open-Meteo). norm = 1991-2020. 2026 data to 24 Oct (October partial).
+month,norm_precip_mm,precip_2026_mm,norm_temp_c,temp_2026_c
+1,32,44,-1.8,-3.2
+2,29,45,-1.0,0.2
+3,48,36,4.1,6.3
+4,52,75,10.5,9.6
+5,70,187,16.6,15.1
+6,65,81,21.5,20.4
+7,51,56,24.6,24.4
+8,47,16,24.1,24.8
+9,48,44,18.3,19.4
+10,49,22,11.7,14.9
