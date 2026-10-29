@@ -1,22 +1,9 @@
-"""Выгрузка весенней погоды по округам из Open-Meteo (архив ERA5).
-
-Для каждого округа берется суточная погода в центре округа за 2004-2026 и считается по годам:
-  pMarMay, pAprMay, pJun - осадки марта-мая, апреля-мая, июня, мм
-  tApr, tMarApr          - средняя температура апреля и марта-апреля, °C
-  fr2                    - дни с минимумом <= -2 °C с 1 апреля по 15 мая (заморозки)
-  hMay, hJun             - дни с максимумом >= 30 °C в мае и июне
-  gdd                    - сумма эффективных температур выше 5 °C, март-июнь
-
-Запуск:  python scripts/00_fetch_spring.py          - все 26 округов (~30-40 минут из-за лимита API)
-         python scripts/00_fetch_spring.py krg ipt  - только выбранные округа (для проверки)
-Результат печатается и сохраняется в data/raw/weather_spring_fetched.txt
-"""
 import json, sys, time, urllib.request
 from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CENTERS = {  # центр округа: широта, долгота
+CENTERS = {
     "alx": (44.71, 43.00), "and": (44.46, 42.51), "apn": (45.91, 43.35), "arz": (45.37, 44.22),
     "blg": (45.10, 43.43), "bud": (44.78, 44.17), "grc": (45.06, 42.47), "grg": (44.15, 43.47),
     "ipt": (45.72, 42.90), "izb": (45.37, 41.71), "kch": (44.68, 41.82), "kir": (43.96, 43.63),
@@ -29,20 +16,18 @@ URL = ("https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={
        "&start_date=2004-01-01&end_date=2026-10-20"
        "&daily=precipitation_sum,temperature_2m_mean,temperature_2m_max,temperature_2m_min&timezone=Europe%2FMoscow")
 
-
 def download(lat, lon):
     for attempt in range(12):
         try:
             with urllib.request.urlopen(URL.format(lat=lat, lon=lon), timeout=120) as r:
                 return json.load(r)["daily"]
         except urllib.error.HTTPError as e:
-            if e.code == 429:  # лимит запросов в минуту
+            if e.code == 429:
                 print("  лимит API, жду минуту...")
                 time.sleep(65)
             else:
                 raise
     raise RuntimeError("не удалось скачать")
-
 
 def season(d):
     rows = []
@@ -67,7 +52,6 @@ def season(d):
         rows.append(",".join(str(v) for v in [round(s["pMarMay"]), round(s["pAprMay"]), round(s["pJun"]),
                                               avg(tA), avg(tMA), int(s["fr2"]), int(s["hMay"]), int(s["hJun"]), round(s["gdd"])]))
     return ";".join(rows)
-
 
 if __name__ == "__main__":
     ids = sys.argv[1:] or list(CENTERS)

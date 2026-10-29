@@ -1,9 +1,6 @@
-// Агромониторинг Ставрополья. Данные: data/agro.json (scripts/02_analysis.py)
 'use strict';
 
-// официальная статистика
 const FACT = {
-  // Северо-Кавказстат: индекс производства растениеводства 2025, % к 2024
   idx25: {alx:158.1,and:137.5,apn:129.7,arz:138.8,blg:160.1,bud:114.1,grg:102.5,grc:148.8,izb:110.2,ipt:124.3,kir:126.2,kch:127.0,krg:93.3,krs:98.3,lvk:125.0,mvd:136.8,nft:126.7,nal:100.8,nsl:151.9,ptr:166.5,prd:103.5,sov:102.1,stp:140.4,trn:116.1,trk:147.8,shp:121.7},
   vol: [[2017,100],[2018,92.9],[2019,89.8],[2020,68.7],[2021,101.8],[2022,106.0],[2023,105.8],[2024,94.8],[2025,113.6]],
   kpis: [
@@ -23,7 +20,6 @@ const CL_COL = ['#2E6B3E','#C47F22','#3F6FA8','#8E4B8F'];
 let D = null;
 const S = {tab:'overview', d:'ptr', metric:'yld25', cmp:'2025', analog:'2020', dp:0, dy:0, dd:0, live:false, liveSO:null, liveStatus:''};
 
-// утилиты
 const $ = (s) => document.querySelector(s);
 const ok = (n) => n != null && !isNaN(n);
 const fmt = (n) => ok(n) ? Math.round(n).toLocaleString('ru-RU') : '-';
@@ -61,7 +57,6 @@ function anomSeries(x) { return x.yld.map((v, i) => (ok(v) && ok(x.trend[i])) ? 
 function volatility(x) { return sd(anomSeries(x).filter(ok)); }
 function regLine(xs, ys) { const mx = mean(xs), my = mean(ys); const b = xs.reduce((s, v, i) => s + (v - mx) * (ys[i] - my), 0) / xs.reduce((s, v) => s + (v - mx) ** 2, 0); return [my - b * mx, b]; }
 
-// загрузка
 (window.__AGRO_DATA ? Promise.resolve(window.__AGRO_DATA) : fetch('data/agro.json').then((r) => r.json())).then((j) => {
   D = j;
   const url = new URL(location.href);
@@ -81,7 +76,6 @@ function regLine(xs, ys) { const mx = mean(xs), my = mean(ys); const b = xs.redu
   render();
 }).catch((e) => { $('#app').innerHTML = `<div class="note bad">Не удалось загрузить данные: ${esc(e.message)}</div>`; });
 
-// живая погода: осадки с 1 сентября по центрам округов
 const COORDS = {krg:[45.85,41.52],trn:[45.43,41.96],ipt:[45.72,42.90],apn:[45.91,43.35],nal:[45.49,41.22],izb:[45.37,41.71],ptr:[45.33,42.85],trk:[45.50,43.58],arz:[45.37,44.22],kch:[44.68,41.82],shp:[45.13,42.03],grc:[45.06,42.47],blg:[45.10,43.43],bud:[44.78,44.17],lvk:[44.82,44.66],and:[44.46,42.51],nsl:[44.75,43.44],alx:[44.71,43.00],sov:[44.41,43.87],stp:[44.27,44.58],nft:[44.75,44.99],prd:[44.03,42.86],mvd:[44.21,43.14],grg:[44.15,43.47],kir:[43.96,43.63],krs:[43.87,44.88]};
 async function loadLive() {
   S.liveStatus = 'загрузка'; render();
@@ -103,7 +97,6 @@ async function loadLive() {
 }
 const so26 = (d) => (S.live && S.liveSO && S.liveSO[d.id] != null) ? S.liveSO[d.id] : d.so26_pct;
 
-// события
 function onClick(e) {
   const b = e.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a, v = b.dataset.v;
@@ -115,7 +108,6 @@ function onClick(e) {
 }
 function onInput(e) { const k = e.target.dataset.s; if (!k) return; S[k] = Number(e.target.value); render(); }
 
-// рендер
 function render() {
   if (!D) return;
   const tabs = [['overview','Обзор'],['crop','Урожайность и погода'],['market','Рынок и маржа'],['risk','Риски'],['model','Модель']];
@@ -125,11 +117,9 @@ function render() {
   $('#app').innerHTML = v();
 }
 
-// общие блоки
 function tilesMap(valueOf, colorOf, labelOf) {
   return `<div class="mapwrap"><div class="map">${D.districts.map((x) => { const v = valueOf(x); const bg = colorOf(v, x); return `<button class="tile ${x.id === S.d ? 'sel' : ''}" data-a="d" data-v="${x.id}" title="${esc(x.name)}" aria-label="${esc(x.name)}: ${esc(labelOf(v))}" style="grid-column:${x.col};grid-row:${x.row};background:${bg};color:${fg(bg)}"><span class="s">${esc(x.short)}</span><span class="x">${esc(labelOf(v))}</span></button>`; }).join('')}</div></div>`;
 }
-// тепловая матрица: строки x столбцы
 function heat({rows, cols, val, color, label, rowLab, colLab, rowW = 130, cellH = 20, w = 960, fs = 9, clickRow, minW = 720}) {
   const cw = (w - rowW - 8) / cols.length, H = 24 + rows.length * cellH;
   let s = cols.map((c, j) => `<text x="${rowW + j * cw + cw / 2}" y="14" class="axis" text-anchor="middle">${esc(colLab(c))}</text>`).join('');
@@ -142,7 +132,6 @@ function heat({rows, cols, val, color, label, rowLab, colLab, rowW = 130, cellH 
 }
 const gradLegend = (lo, hi, stops, f) => `<div class="glegend"><span class="num">${f(lo)}</span><span class="gradbar" style="background:linear-gradient(90deg,${stops.join(',')})"></span><span class="num">${f(hi)}</span></div>`;
 
-// Обзор
 function overview() {
   const d = dist(S.d);
   const metrics = {
@@ -155,7 +144,6 @@ function overview() {
   };
   const m = metrics[S.metric] || metrics.yld25;
   const kpis = FACT.kpis.map((k) => `<div class="kpi"><div class="l">${k.l}</div><div class="v">${k.v}</div><div class="n">${k.n}</div></div>`).join('');
-  // паспорт округа
   const an = anomSeries(d).filter(ok);
   const rows = [
     ['Агроклиматическая зона', d.zone],
@@ -171,15 +159,12 @@ function overview() {
   ];
   const as = anomSeries(d), AXs = xsc(d.years.length, 40, 16), AY = ysc(-60, 60, 150, 6, 20);
   const abars = svg(150, `${[-50, 0, 50].map((v) => `<line x1="40" x2="628" y1="${AY(v)}" y2="${AY(v)}" stroke="var(--grid)"/><text x="36" y="${AY(v) + 3.5}" class="axis mono" text-anchor="end">${sg(v)}</text>`).join('')}${as.map((v, i) => ok(v) ? `<rect x="${AXs(i) - 11}" y="${Math.min(AY(0), AY(Math.max(-60, v)))}" width="22" height="${Math.abs(AY(Math.max(-60, v)) - AY(0))}" fill="${v < 0 ? '#C47F22' : '#6E9C78'}"><title>${d.years[i]}: ${sg(v, f1)}%</title></rect>` : '').join('')}${d.years.map((y, i) => i % 2 === 0 || i === d.years.length - 1 ? `<text x="${AXs(i)}" y="146" class="axis" text-anchor="middle">${y}</text>` : '').join('')}`, 'Отклонения округа');
-  // матрица отклонений: округа (с запада на восток по влажности) x годы
   const yrs = d.years.filter((y, i) => D.districts.some((x) => ok(x.yld[i])));
   const order = D.districts.slice().sort((a, b) => b.n_gtk - a.n_gtk).map((x) => x.id);
   const mat = heat({rows: order, cols: yrs, val: (r, y) => { const x = dist(r), i = x.years.indexOf(y); return ok(x.yld[i]) ? (x.yld[i] / x.trend[i] - 1) * 100 : null; },
     color: (v) => div(v, 45), label: (v) => ok(v) ? Math.round(v) : '-', rowLab: (r) => dist(r).name, colLab: String, clickRow: true});
-  // объем растениеводства
   const vy = ysc(0, 125, 220, 18, 26), bw = (W - 44 - 12) / FACT.vol.length;
   const vol = FACT.vol.map(([y, v], i) => { const x = 44 + i * bw; return `<rect x="${x + bw * .18}" y="${vy(v)}" width="${bw * .64}" height="${vy(0) - vy(v)}" rx="3" fill="${v < 95 ? '#C47F22' : '#6E9C78'}"/><text x="${x + bw / 2}" y="${vy(v) - 6}" text-anchor="middle" class="axis mono" style="fill:var(--ink);font-weight:600;font-size:11px">${f1(v)}</text><text x="${x + bw / 2}" y="214" text-anchor="middle" class="axis" style="font-size:11px">${y}</text>`; }).join('');
-  // боксплоты отклонений по агрозонам
   const zv = ZONES.map((z) => [z, D.districts.filter((x) => x.zone === z).flatMap((x) => anomSeries(x).filter(ok))]).filter((z) => z[1].length);
   const BY = ysc(-80, 80, 250, 12, 40), zb = (W - 56) / zv.length;
   const box = yAxis(-80, 80, 8, 250, 12, 40, (v) => sg(v, Math.round) + '%') + zv.map(([z, a], i) => {
@@ -205,7 +190,6 @@ function overview() {
     </div></section>`;
 }
 
-// Урожайность и погода
 function crop() {
   const d = dist(S.d);
   const n = d.years.length, X = xsc(n);
@@ -217,29 +201,24 @@ function crop() {
     ${d.yld.map((v, i) => ok(v) ? `<circle cx="${X(i)}" cy="${Y(v)}" r="4.5" fill="${v < d.trend[i] * .85 ? '#B23A2E' : '#2E6B3E'}" stroke="var(--card)" stroke-width="1.5"><title>${d.years[i]}: ${f1(v)} ц/га</title></circle>` : '').join('')}`, 'Урожайность и тренд');
   const tr = d.trend.filter(ok); const slope = (tr[tr.length - 1] - tr[0]) / (d.years.length - 1);
 
-  // температура мая-июня и отклонение
   const sc = D.scatter;
   const ax = ysc(-60, 60, 260, 12, 40), sx = lin(-3, 4, 44, W - 12);
   const dots = (xf) => sc.slice().sort((a, b) => (a[0] === S.d) - (b[0] === S.d)).map((p) => { const xv = xf(p); if (!ok(xv)) return ''; return `<circle cx="${xv}" cy="${ax(Math.max(-60, Math.min(60, p[4])))}" r="${p[0] === S.d ? 5 : 3}" fill="${p[0] === S.d ? '#C47F22' : '#7E8A80'}" opacity="${p[0] === S.d ? 1 : .35}"><title>${esc(dist(p[0]).name)}, ${p[1]}</title></circle>`; }).join('');
   const grid = [-60,-30,0,30,60].map((v) => `<line x1="44" x2="628" y1="${ax(v)}" y2="${ax(v)}" stroke="var(--grid)"/><text x="40" y="${ax(v) + 3.5}" class="axis mono" text-anchor="end">${sg(v)}%</text>`).join('');
   const sl = D.slope_dt;
   const sc1 = svg(260, `${grid}${[-3,-2,-1,0,1,2,3,4].map((t) => `<text x="${sx(t)}" y="234" class="axis mono" text-anchor="middle">${sg(t)}</text>`).join('')}${xlab(336, 254, 'Температура мая-июня, отклонение от нормы, °C')}${dots((p) => ok(p[2]) ? sx(Math.max(-3, Math.min(4, p[2]))) : null)}<line x1="${sx(-3)}" y1="${ax(sl * -3)}" x2="${sx(4)}" y2="${ax(sl * 4)}" stroke="var(--ink)" stroke-width="2"/>`, 'Температура и отклонение урожайности');
-  // осадки весны (лог-шкала) и отклонение
   const ls = D.coefs.find((c) => c.key === 'lspr'), bsp = ls.b / Math.log(2);
   const lx = lin(Math.log(.25), Math.log(3), 44, W - 12);
   const sc2 = svg(260, `${grid}${[.25,.5,1,2,3].map((t) => `<text x="${lx(Math.log(t))}" y="234" class="axis mono" text-anchor="middle">${Math.round(t * 100)}%</text>`).join('')}${xlab(336, 254, 'Осадки марта-мая, % нормы (логарифмическая шкала)')}${dots((p) => ok(p[5]) ? lx(Math.max(Math.log(.25), Math.min(Math.log(3), p[5]))) : null)}<line x1="${lx(Math.log(.25))}" y1="${ax(bsp * Math.log(.25))}" x2="${lx(Math.log(3))}" y2="${ax(bsp * Math.log(3))}" stroke="var(--ink)" stroke-width="2"/>`, 'Осадки весны и отклонение урожайности');
   const spr = sc.filter((p) => ok(p[5]) && ok(p[4])), rS = corr(spr.map((p) => p[5]), spr.map((p) => p[4]));
   const tpr = sc.filter((p) => ok(p[2]) && ok(p[4])), rT = corr(tpr.map((p) => p[2]), tpr.map((p) => p[4]));
 
-  // корреляционная матрица
   const C = D.corr, k = C.labels.length;
   const cm = heat({rows: [...Array(k).keys()], cols: [...Array(k).keys()], val: (i, j) => C.m[i][j], color: (v) => div(v, 1), label: (v) => f2(v), rowLab: (i) => C.labels[i], colLab: (j) => ['Откл.','Темп.','ГТК','Весна','Осень','Зима','Замор.'][j], rowW: 128, cellH: 30, w: 600, fs: 10, minW: 520});
-  // forest plot
   const ef = D.effects;
   const em = Math.ceil(Math.max(...ef.map((e) => Math.max(Math.abs(e.lo ?? e.e), Math.abs(e.hi ?? e.e)))) / 5) * 5;
   const fx = lin(-em, em, 250, 560);
   const forest = svg(ef.length * 38 + 40, `<line x1="${fx(0)}" x2="${fx(0)}" y1="8" y2="${ef.length * 38 + 12}" stroke="var(--grey)"/>${[-em, -em / 2, 0, em / 2, em].map((v) => `<text x="${fx(v)}" y="${ef.length * 38 + 32}" class="axis mono" text-anchor="middle">${sg(v)}%</text>`).join('')}${ef.map((e, i) => { const y = 24 + i * 38; const sig = e.lo != null && (e.lo > 0 || e.hi < 0); const c = !sig ? '#9AA195' : e.e < 0 ? '#B23A2E' : '#2E6B3E'; return `<text x="236" y="${y + 4}" text-anchor="end" style="font-size:12px;fill:var(--ink)">${esc(e.label)}</text>${e.lo != null ? `<line x1="${fx(e.lo)}" x2="${fx(e.hi)}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="3" stroke-linecap="round"/>` : ''}<circle cx="${fx(e.e)}" cy="${y}" r="6" fill="${c}" stroke="var(--card)" stroke-width="1.5"/><text x="632" y="${y + 4}" text-anchor="end" class="axis mono" style="font-size:11px;fill:var(--ink2)">${sg(e.e, f1)}%</text>`; }).join('')}`, 'Эффекты факторов');
-  // климат и волатильность
   const vv = D.districts.map((x) => [x, x.n_gtk, volatility(x)]);
   const [a0, b0] = regLine(vv.map((v) => v[1]), vv.map((v) => v[2])), rV = corr(vv.map((v) => v[1]), vv.map((v) => v[2]));
   const vx = lin(.6, 2.7, 44, W - 12), vy = ysc(5, 30, 240, 12, 40);
@@ -254,10 +233,8 @@ function crop() {
   </div></section>`;
 }
 
-// Рынок и маржа
 function market() {
   const d = dist(S.d);
-  // каскад маржи
   const e = S.cmp, s0 = String(+e - 1);
   const p0 = d.margin_parts[s0], p1 = d.margin_parts[e];
   let wf = '';
@@ -270,7 +247,6 @@ function market() {
     const Y = ysc(lo, hi, 260, 22, 26), bw = (W - 52) / 5;
     wf = svg(260, `<line x1="40" x2="628" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--grey)"/>${steps.map(([l, a, b, tot], i) => { const t = Y(Math.max(a, b)), bt = Y(Math.min(a, b)), dd = b - a; const x = 40 + i * bw; return `<rect x="${x + bw * .15}" y="${t}" width="${bw * .7}" height="${Math.max(1.5, bt - t)}" rx="3" fill="${tot ? (b < 0 ? '#B23A2E' : '#3E4A42') : dd >= 0 ? '#2E7D4F' : '#C47F22'}"/><text x="${x + bw / 2}" y="${t - 6}" text-anchor="middle" class="axis mono" style="font-size:12px;fill:var(--ink);font-weight:600">${tot ? fmt(b) : sg(dd)}</text><text x="${x + bw / 2}" y="252" text-anchor="middle" class="axis" style="font-size:11px;fill:var(--ink2)">${l}</text>`; }).join('')}`, 'Каскад маржи');
   }
-  // калькулятор и торнадо
   const mc = d.mc; const yB = mc.trend, pB = D.meta.P0, cB = mc.cost;
   const yS = yB * (1 + S.dy / 100), pS = pB * (1 + S.dp / 100), cS = cB * (1 + 0.1 * S.dd / 100);
   const baseM = yB / 10 * pB - cB, scenM = yS / 10 * pS - cS;
@@ -279,33 +255,27 @@ function market() {
   const tor = [['Цена пшеницы', yB / 10 * pB * .2], ['Урожайность', yB / 10 * pB * .2], ['Затраты кроме ГСМ', cB * .9 * .2], ['Цена дизеля', cB * .1 * .2]].sort((a, b) => b[1] - a[1]);
   const tm = tor[0][1], tx = lin(-tm, tm, 250, 570);
   const tornado = svg(tor.length * 34 + 30, `<line x1="${tx(0)}" x2="${tx(0)}" y1="4" y2="${tor.length * 34 + 4}" stroke="var(--grey)"/>${tor.map(([l, v], i) => { const y = 8 + i * 34; const up = l.startsWith('Затраты') || l.startsWith('Цена дизеля'); return `<text x="150" y="${y + 15}" text-anchor="end" style="font-size:12px;fill:var(--ink)">${l}</text><rect x="${tx(-v)}" y="${y}" width="${tx(0) - tx(-v)}" height="22" fill="#C47F22"/><rect x="${tx(0)}" y="${y}" width="${tx(v) - tx(0)}" height="22" fill="#2E7D4F"/><text x="${tx(-v) - 4}" y="${y + 15}" text-anchor="end" class="axis mono">${'-' + fmt(v)}</text><text x="${tx(v) + 4}" y="${y + 15}" class="axis mono">${'+' + fmt(v)}</text><title>${up ? 'рост на 20% снижает маржу' : 'рост на 20% повышает маржу'}</title>`; }).join('')}<text x="${tx(0)}" y="${tor.length * 34 + 24}" text-anchor="middle" class="axis mono">маржа ${fmt(baseM)} ₽/га</text>`, 'Чувствительность маржи');
-  // цена
   const pr = D.prices; const n = pr.length; const X = (i) => 44 + i * (W - 56) / (n - 1);
   const [plo, phi] = niceRange(pr.map((p) => p[1]), 2000);
   const PY = ysc(plo, phi, 230, 12, 26);
   const yearTicks = (arr, Xf, y) => arr.map((p, i) => p[0].endsWith('-01') ? `<text x="${Xf(i)}" y="${y}" class="axis" text-anchor="middle">${p[0].slice(0, 4)}</text>` : '').join('');
   const priceC = svg(230, `${yAxis(plo, phi, 4, 230, 12, 26, (v) => fmt(v))}${yearTicks(pr, X, 224)}<polyline points="${poly(pr.map((p, i) => [X(i), PY(p[1])]))}" fill="none" stroke="#2E6B3E" stroke-width="2.2"/><polyline points="${poly(D.stl.trend.map((v, i) => [X(i), PY(v)]))}" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="5 4"/>`, 'Цена пшеницы');
-  // STL: три панели
   const st = D.stl, sn = st.t.length, SX = (i) => 44 + i * (W - 56) / (sn - 1);
   const panel = (vals, y0, h, title, bars) => { const [a, b] = niceRange(vals, bars ? 5 : 2); const Yp = ysc(a, b, y0 + h, y0 + 22, 0); return `<text x="48" y="${y0 + 10}" style="font-size:11px;fill:var(--ink2);font-weight:600">${title}</text>${[a, 0, b].filter((v, i, arr) => arr.indexOf(v) === i && v >= a && v <= b).map((v) => `<line x1="44" x2="628" y1="${Yp(v)}" y2="${Yp(v)}" stroke="var(--grid)"/><text x="40" y="${Yp(v) + 3.5}" class="axis mono" text-anchor="end">${sg(v, Math.round)}</text>`).join('')}${bars ? vals.map((v, i) => `<rect x="${SX(i) - 1.5}" y="${Math.min(Yp(0), Yp(v))}" width="3" height="${Math.abs(Yp(v) - Yp(0))}" fill="${Math.abs(v) > 2 * sd(vals) ? '#B23A2E' : '#9AA195'}"/>`).join('') : `<polyline points="${poly(vals.map((v, i) => [SX(i), Yp(v)]))}" fill="none" stroke="#2E6B3E" stroke-width="1.8"/>`}`; };
   const stl = svg(330, panel(st.seas, 0, 110, 'Сезонная компонента, %') + panel(st.resid, 118, 110, 'Остаток, % (красные: |e| > 2σ)', true) + yearTicks(st.t.map((t) => [t]), SX, 248) + `<text x="44" y="272" style="font-size:11px;fill:var(--ink2);font-weight:600">Тренд, ₽/т</text>` + (() => { const [a, b] = niceRange(st.trend, 2000); const Yt = ysc(a, b, 330, 278, 4); return `<polyline points="${poly(st.trend.map((v, i) => [SX(i), Yt(v)]))}" fill="none" stroke="var(--ink)" stroke-width="1.8"/><text x="40" y="${Yt(b) + 3.5}" class="axis mono" text-anchor="end">${fmt(b / 1000)}k</text><text x="40" y="${Yt(a) + 3.5}" class="axis mono" text-anchor="end">${fmt(a / 1000)}k</text>`; })(), 'STL-разложение цены');
-  // сезонность
   const se = D.season; const SY = ysc(-10, 10, 220, 10, 24), sbw = (W - 52) / 12;
   const seas = svg(220, `<line x1="40" x2="628" y1="${SY(0)}" y2="${SY(0)}" stroke="var(--grey)"/>${[-10,-5,0,5,10].map((v) => `<text x="36" y="${SY(v) + 3.5}" class="axis mono" text-anchor="end">${sg(v)}%</text>`).join('')}${se.map((s, i) => { const x = 40 + i * sbw; const a = SY(0), c = SY(s.idx); return `<rect x="${x + sbw * .18}" y="${Math.min(a, c)}" width="${sbw * .64}" height="${Math.max(1, Math.abs(c - a))}" rx="2" fill="${s.lo > 0 ? '#2E7D4F' : s.hi < 0 ? '#C47F22' : '#B7BDB1'}"/><line x1="${x + sbw / 2}" x2="${x + sbw / 2}" y1="${SY(s.hi)}" y2="${SY(s.lo)}" stroke="var(--ink)" stroke-width="1.2"/><text x="${x + sbw / 2}" y="214" class="axis" text-anchor="middle">${MON[s.m - 1]}</text>`; }).join('')}`, 'Сезонный индекс цены');
-  // распределение месячных изменений
   const R = D.ret, rv = R.vals, rlo = -20, rhi = 20, nb = 20, hb = (rhi - rlo) / nb;
   const cnt = new Array(nb).fill(0); rv.forEach((v) => { const k = Math.min(nb - 1, Math.max(0, Math.floor((v - rlo) / hb))); cnt[k]++; });
   const cmx = Math.max(...cnt), HX = lin(rlo, rhi, 44, 628), HY = ysc(0, cmx * 1.1, 220, 10, 26);
   const npdf = (x) => rv.length * hb * Math.exp(-((x - R.mean) ** 2) / (2 * R.sd ** 2)) / (R.sd * Math.sqrt(2 * Math.PI));
   const curve = []; for (let x = rlo; x <= rhi; x += .5) curve.push([HX(x), HY(npdf(x))]);
   const hist = svg(220, `${cnt.map((c, k) => `<rect x="${HX(rlo + k * hb) + .6}" y="${HY(c)}" width="${HX(hb) - HX(0) - 1.2}" height="${HY(0) - HY(c)}" fill="#6E9C78"/>`).join('')}<polyline points="${poly(curve)}" fill="none" stroke="var(--ink)" stroke-width="1.6"/><line x1="44" x2="628" y1="${HY(0)}" y2="${HY(0)}" stroke="var(--grey)"/>${[-20,-10,0,10,20].map((v) => `<text x="${HX(v)}" y="214" class="axis mono" text-anchor="middle">${sg(v)}%</text>`).join('')}`, 'Распределение месячных изменений цены');
-  // паритет
   const pa = D.parity; const pn = pa.length; const PX = (i) => 44 + i * (W - 56) / (pn - 1);
   const [alo, ahi] = niceRange(pa.map((p) => p[1]), 1);
   const AY = ysc(alo, ahi, 220, 10, 24);
   const parity = svg(220, `<rect x="44" y="${AY(D.meta.par_mean + D.meta.par_sd)}" width="584" height="${AY(D.meta.par_mean - D.meta.par_sd) - AY(D.meta.par_mean + D.meta.par_sd)}" fill="var(--line2)"/><line x1="44" x2="628" y1="${AY(D.meta.par_mean)}" y2="${AY(D.meta.par_mean)}" stroke="var(--grey)" stroke-dasharray="4 4"/>${yAxis(alo, ahi, 4, 220, 10, 24, f1)}${yearTicks(pa, PX, 214)}<polyline points="${poly(pa.map((p, i) => [PX(i), AY(p[1])]))}" fill="none" stroke="#B4532A" stroke-width="2.4"/>`, 'Паритет');
   const parNow = pa[pa.length - 1][1], parZ = (parNow - D.meta.par_mean) / D.meta.par_sd;
-  // цена и урожайность края по годам
   const PYd = D.price_yield, pts = PYd.pts;
   const qx = lin(Math.min(...pts.map((p) => p[1])) - 3, Math.max(...pts.map((p) => p[1])) + 3, 54, 620);
   const [qlo, qhi] = niceRange(pts.map((p) => p[2]), 2000), QY = ysc(qlo, qhi, 240, 12, 40);
@@ -324,7 +294,6 @@ function market() {
   </div></section>`;
 }
 
-// Риски
 function risk() {
   const d = dist(S.d);
   const key = S.analog;
@@ -338,12 +307,10 @@ function risk() {
   const yN = D.districts.reduce((s, x) => s + (D.normal[x.id] ? D.normal[x.id].yld * x.area : 0), 0) / A;
   const MM = 40000;
   const map = tilesMap((x) => ms[x.id], (v) => div(v, MM * .7), (v) => ok(v) ? (v < 0 ? '-' : '') + f1(Math.abs(v) / 1000) + 'k' : '-');
-  // матрица стресс-теста: округа x сценарии
   const order = D.districts.slice().sort((a, b) => b.n_gtk - a.n_gtk).map((x) => x.id);
   const scen = ['-1', ...SCEN];
   const smat = heat({rows: order, cols: scen, val: (r, c) => { const s = c === '-1' ? D.normal : D.stress[c]; return s[r] ? s[r].margin : null; }, color: (v) => div(v, MM * .7),
     label: (v) => ok(v) ? (v < 0 ? '-' : '') + f1(Math.abs(v) / 1000) : '-', rowLab: (r) => dist(r).name, colLab: (c) => c === '-1' ? 'тренд' : c, rowW: 140, cellH: 20, w: 760, fs: 10, clickRow: true});
-  // Монте-Карло: гистограмма и функция распределения
   const q = d.mc.q; const all = D.districts.flatMap((x) => [x.mc.q[2], x.mc.q[197]]);
   const lo = Math.floor(Math.min(...all) / 10000) * 10000, hi = Math.ceil(Math.max(...all) / 10000) * 10000;
   const nb = 28, bw = (hi - lo) / nb; const cnt = new Array(nb).fill(0); q.forEach((v) => { const k = Math.floor((v - lo) / bw); if (k >= 0 && k < nb) cnt[k]++; });
@@ -354,11 +321,9 @@ function risk() {
   const CY = ysc(0, 1, 210, 10, 24);
   const cdfK = (x) => x.mc.q.map((v, i) => [hx(Math.max(lo, Math.min(hi, v))), CY((i + .5) / 200)]);
   const cdf = svg(210, `${[0, .25, .5, .75, 1].map((p) => `<line x1="44" x2="628" y1="${CY(p)}" y2="${CY(p)}" stroke="var(--grid)"/><text x="40" y="${CY(p) + 3.5}" class="axis mono" text-anchor="end">${pct(p)}</text>`).join('')}<line x1="${hx(0)}" x2="${hx(0)}" y1="10" y2="186" stroke="#B23A2E" stroke-dasharray="4 3"/>${D.districts.filter((x) => x.id !== d.id).map((x) => `<polyline points="${poly(cdfK(x))}" fill="none" stroke="var(--grey)" stroke-width="1" opacity=".45"/>`).join('')}<polyline points="${poly(cdfK(d))}" fill="none" stroke="#C47F22" stroke-width="2.6"/>${tk}`, 'Функция распределения маржи');
-  // рейтинг P(убытка)
   const ranked = D.districts.slice().sort((a, b) => b.mc.ploss - a.mc.ploss);
   const rMax = Math.max(ranked[0].mc.ploss, .01);
   const rank = ranked.map((x) => `<button class="rank" data-a="d" data-v="${x.id}"><span style="font-size:12px;font-weight:${x.id === S.d ? 700 : 400}">${esc(x.name)}</span><span class="bar"><span style="width:${x.mc.ploss / rMax * 100}%;background:${scale(['#9DBFA4','#E9A867','#B23A2E'], x.mc.ploss / .45)}"></span></span><span class="num" style="font-size:12px;text-align:right">${pct(x.mc.ploss)}</span></button>`).join('');
-  // риск и доходность
   const rr = D.districts.map((x) => [x, volatility(x), x.mc.mean, x.mc.q05]);
   const RX = lin(8, 26, 54, 620), [ylo, yhi] = niceRange(rr.map((v) => v[2]), 10000), RY = ysc(ylo, yhi, 260, 12, 40);
   const amax = Math.max(...D.districts.map((x) => x.area || 0));
@@ -380,14 +345,11 @@ function risk() {
   </section>`;
 }
 
-// Модель
 function model() {
   const m = D.meta, G = D.diag;
   const coefs = D.coefs.map((c) => `<tr><td>${esc(c.name)}</td><td>${esc(c.unit)}</td><td class="r num"><b>${sg(c.b, f2)}</b></td><td class="r num">${f2(c.lo)}; ${f2(c.hi)}</td><td class="r num">${pv(c.p)}</td></tr>`).join('');
-  // сравнение спецификаций
   const sp = D.specs, smax = Math.ceil(Math.max(...sp.map((s) => s.dist)) / 5) * 5, SX = lin(0, smax, 250, 600);
   const specs = svg(sp.length * 44 + 30, `${[0, 5, 10, 15, smax].filter((v, i, a) => a.indexOf(v) === i).map((v) => `<line x1="${SX(v)}" x2="${SX(v)}" y1="4" y2="${sp.length * 44}" stroke="var(--grid)"/><text x="${SX(v)}" y="${sp.length * 44 + 16}" class="axis mono" text-anchor="middle">${v}%</text>`).join('')}${sp.map((s, i) => { const y = 6 + i * 44; const best = i === sp.length - 1; return `<text x="240" y="${y + 16}" text-anchor="end" style="font-size:12px;fill:var(--ink);font-weight:${best ? 700 : 400}">${esc(s.name)}</text><rect x="${SX(0)}" y="${y}" width="${SX(s.krai) - SX(0)}" height="15" fill="${best ? '#2E6B3E' : '#9DBFA4'}"/><rect x="${SX(0)}" y="${y + 17}" width="${SX(s.dist) - SX(0)}" height="15" fill="${best ? '#C47F22' : '#E9C79A'}"/><text x="${SX(s.krai) + 4}" y="${y + 12}" class="axis mono">${f1(s.krai)}</text><text x="${SX(s.dist) + 4}" y="${y + 29}" class="axis mono">${f1(s.dist)}</text>`; }).join('')}`, 'Сравнение спецификаций');
-  // ретропрогноз
   const bt = D.backtest; const nb = bt.length, BX = xsc(nb);
   const [blo, bhi] = niceRange(bt.flatMap((x) => [x.act, x.pred, x.naive]), 5);
   const BY = ysc(blo - 5, bhi + 5, 240, 12, 26);
@@ -395,17 +357,13 @@ function model() {
     <polyline points="${poly(bt.map((x, i) => [BX(i), BY(x.naive)]))}" fill="none" stroke="var(--grey)" stroke-width="1.6" stroke-dasharray="5 4"/>
     <polyline points="${poly(bt.map((x, i) => [BX(i), BY(x.act)]))}" fill="none" stroke="var(--ink)" stroke-width="2.4"/>
     ${bt.map((x, i) => `<circle cx="${BX(i)}" cy="${BY(x.pred)}" r="5" fill="#C47F22" stroke="var(--card)" stroke-width="1.5"><title>${x.year}: факт ${f1(x.act)}, модель ${f1(x.pred)}, тренд ${f1(x.naive)}</title></circle>`).join('')}`, 'Ретропрогноз');
-  // остатки против прогноза
   const fr = G.fit_res, FX = lin(-40, 40, 44, 628), FY = ysc(-60, 60, 240, 12, 40);
   const resid = svg(240, `${yAxis(-60, 60, 4, 240, 12, 40, (v) => sg(v, Math.round))}${[-40, -20, 0, 20, 40].map((v) => `<text x="${FX(v)}" y="216" class="axis mono" text-anchor="middle">${sg(v)}</text>`).join('')}${xlab(336, 234, 'Прогноз модели, % к тренду')}${fr.map(([f, r]) => `<circle cx="${FX(Math.max(-40, Math.min(40, f)))}" cy="${FY(Math.max(-60, Math.min(60, r)))}" r="2.6" fill="#3F6FA8" opacity=".5"/>`).join('')}<line x1="44" x2="628" y1="${FY(0)}" y2="${FY(0)}" stroke="var(--ink)"/>`, 'Остатки против прогноза');
-  // Q-Q
   const QX = lin(-3.5, 3.5, 44, 628), QY = ysc(-4, 4, 240, 12, 40);
   const qq = svg(240, `${yAxis(-4, 4, 4, 240, 12, 40, (v) => sg(v, Math.round))}${[-3, -2, -1, 0, 1, 2, 3].map((v) => `<text x="${QX(v)}" y="216" class="axis mono" text-anchor="middle">${sg(v)}</text>`).join('')}${xlab(336, 234, 'Теоретические квантили N(0, 1)')}<line x1="${QX(-3.5)}" y1="${QY(-3.5)}" x2="${QX(3.5)}" y2="${QY(3.5)}" stroke="var(--ink)" stroke-dasharray="5 4"/>${G.qq.map(([t, v]) => `<circle cx="${QX(t)}" cy="${QY(Math.max(-4, Math.min(4, v)))}" r="2.4" fill="#2E6B3E" opacity=".6"/>`).join('')}`, 'Q-Q plot');
-  // устойчивость коэффициентов
   const ro = D.roll, RX = xsc(ro.length, 54, 20);
   const rpanel = (k, y0, title, col) => { const vals = ro.flatMap((r) => r[k]); const [a, b] = niceRange(vals.concat([0]), 5); const Yp = ysc(a, b, y0 + 130, y0 + 18, 4); return `<text x="54" y="${y0 + 12}" style="font-size:11px;fill:var(--ink2);font-weight:600">${title}</text>${[a, 0, b].map((v) => `<line x1="54" x2="620" y1="${Yp(v)}" y2="${Yp(v)}" stroke="${v === 0 ? 'var(--grey)' : 'var(--grid)'}"/><text x="50" y="${Yp(v) + 3.5}" class="axis mono" text-anchor="end">${sg(v, Math.round)}</text>`).join('')}<polygon points="${poly(ro.map((r, i) => [RX(i), Yp(r[k][2])]))} ${poly(ro.map((r, i) => [RX(i), Yp(r[k][1])]).reverse())}" fill="${col}" opacity=".18"/><polyline points="${poly(ro.map((r, i) => [RX(i), Yp(r[k][0])]))}" fill="none" stroke="${col}" stroke-width="2.2"/>`; };
   const rollc = svg(300, rpanel('dt', 0, 'Температура мая-июня, % на 1 °C', '#B23A2E') + rpanel('lspr', 140, 'Осадки весны, % на 1 ед. лог.', '#2E6B3E') + ro.map((r, i) => `<text x="${RX(i)}" y="294" class="axis" text-anchor="middle">${r.year}</text>`).join(''), 'Устойчивость коэффициентов');
-  // дендрограмма и кластеры
   const CL = D.clusters, leaves = CL.leaves, nl = leaves.length;
   const maxH = Math.max(...CL.dcoord.flat());
   const DX = (v) => 30 + (v - 5) / (nl * 10 - 10) * 590, DY = ysc(0, maxH, 300, 10, 130);
@@ -413,7 +371,6 @@ function model() {
   const dend = svg(300, `${CL.icoord.map((ic, i) => { const dc = CL.dcoord[i]; return `<polyline points="${ic.map((x, j) => `${DX(x).toFixed(1)},${DY(dc[j]).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--ink2)" stroke-width="1.2"/>`; }).join('')}${leaves.map((id, i) => { const x = DX(5 + i * 10); return `<circle cx="${x}" cy="${DY(0) + 6}" r="4" fill="${CL_COL[(clOf[id] - 1) % 4]}"/><text x="${x + 3}" y="${DY(0) + 16}" transform="rotate(-90 ${x} ${DY(0) + 16})" text-anchor="end" style="font-size:10px;fill:var(--ink2)">${esc(dist(id).name)}</text>`; }).join('')}`, 'Дендрограмма');
   const clMap = tilesMap((x) => clOf[x.id], (v) => ok(v) ? mix(CL_COL[(v - 1) % 4], '#FFFFFF', .25) : '#EEF0EA', (v) => ok(v) ? 'кл. ' + v : '-');
   const clStats = [1, 2, 3, 4].map((c) => { const ds = D.districts.filter((x) => clOf[x.id] === c); return ds.length ? [`Кластер ${c}, n = ${ds.length}`, `σ ${f1(mean(ds.map(volatility)))}%`] : null; }).filter(Boolean);
-  // тесты
   const tests = [
     ['R² (внутри округов)', f3(G.r2_within), ''],
     ['Шапиро-Уилк, нормальность остатков', f3(G.sw_stat), pv(G.sw_p)],
