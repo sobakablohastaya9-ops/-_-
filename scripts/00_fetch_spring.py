@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CENTERS = {  # центр округа: широта, долгота (как в 01_prepare.py)
+CENTERS = {  # центр округа: широта, долгота
     "alx": (44.71, 43.00), "and": (44.46, 42.51), "apn": (45.91, 43.35), "arz": (45.37, 44.22),
     "blg": (45.10, 43.43), "bud": (44.78, 44.17), "grc": (45.06, 42.47), "grg": (44.15, 43.47),
     "ipt": (45.72, 42.90), "izb": (45.37, 41.71), "kch": (44.68, 41.82), "kir": (43.96, 43.63),
@@ -36,7 +36,7 @@ def download(lat, lon):
             with urllib.request.urlopen(URL.format(lat=lat, lon=lon), timeout=120) as r:
                 return json.load(r)["daily"]
         except urllib.error.HTTPError as e:
-            if e.code == 429:  # лимит запросов в минуту - ждем
+            if e.code == 429:  # лимит запросов в минуту
                 print("  лимит API, жду минуту...")
                 time.sleep(65)
             else:

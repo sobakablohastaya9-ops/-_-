@@ -22,7 +22,7 @@ wx = pd.read_csv(CLEAN / "fact_weather_season.csv")
 price_m = pd.read_csv(CLEAN / "fact_price_wheat_monthly.csv")
 diesel_m = pd.read_csv(CLEAN / "fact_diesel_monthly.csv")
 
-SEED_YEARS = {2020, 2025, 2026}       # активные воздействия на облака (Росгидромет), по открытым публикациям
+SEED_YEARS = {2020, 2025, 2026}       # годы активных воздействий на облака
 area = dim.set_index("id")["area_wheat_2025"]
 
 # 1. Тренд и аномалии
@@ -132,14 +132,14 @@ par["diesel_t"] = par.diesel * 1190          # руб/л -> руб/т (плот�
 par["parity"] = par.diesel_t / par.price
 par_mean, par_sd = float(par.parity.mean()), float(par.parity.std())
 
-# годовая цена урожая: среднее июль(t) - июнь(t+1), что есть
+# цена урожая года t: среднее за июль(t) - июнь(t+1)
 def harvest_price(y):
     s = pm.price[(pm.index >= f"{y}-07-01") & (pm.index <= f"{y+1}-06-01")]
     return float(s.mean()) if len(s) else np.nan
 hp = {y: harvest_price(y) for y in range(2017, 2027)}
 
 # 5. Модель затрат и маржа
-# Структура - техкарта озимой пшеницы 2023 (direct.farm, 60,8 тыс. ₽/га при 54,3 ц/га) без амортизации:
+# Техкарта озимой пшеницы 2023 (direct.farm, 60,8 тыс. ₽/га при 54,3 ц/га) без амортизации:
 # переменные (удобрения 13,1 + СЗР 4,85 + семена 4,73) масштабируются интенсивностью (урожай тренда / 54,3),
 # ГСМ 4,21 - интенсивностью и ценой дизеля, ФОТ+прочие (23,8) - 75% как постоянная часть.
 diesel_y = dm.groupby("year").diesel.mean().to_dict()
@@ -214,7 +214,7 @@ for y in [2010, 2013, 2019, 2020, 2021, 2024, 2025]:
     stress[y] = res
 normal = {d: dict(yld=mc[d]["trend"], margin=mc[d]["trend"] / 10 * P0 - mc[d]["cost"]) for d in mc}
 
-# 6b. Дополнительная статистика
+# 7. Дополнительная статистика
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.stattools import durbin_watson, jarque_bera
@@ -307,7 +307,7 @@ py = krai_m[krai_m.year <= 2025][["year", "yld", "price"]]
 py_r = stats.pearsonr(py.yld, py.price)
 price_yield = dict(pts=[[int(a), round(float(b), 1), round(float(c))] for a, b, c in py.values], r=float(py_r.statistic), p=float(py_r.pvalue))
 
-# 7. Сборка JSON для дашборда
+# 8. Сборка JSON для дашборда
 def r1(x): return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), 1)
 def r2_(x): return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), 2)
 

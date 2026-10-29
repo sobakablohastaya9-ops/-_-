@@ -1,7 +1,7 @@
-/* Агромониторинг Ставрополья. Данные: data/agro.json (готовит scripts/02_analysis.py). */
+// Агромониторинг Ставрополья. Данные: data/agro.json (scripts/02_analysis.py)
 'use strict';
 
-// ---------- официальная статистика, которая не пересчитывается моделью ----------
+// официальная статистика
 const FACT = {
   // Северо-Кавказстат: индекс производства растениеводства 2025, % к 2024
   idx25: {alx:158.1,and:137.5,apn:129.7,arz:138.8,blg:160.1,bud:114.1,grg:102.5,grc:148.8,izb:110.2,ipt:124.3,kir:126.2,kch:127.0,krg:93.3,krs:98.3,lvk:125.0,mvd:136.8,nft:126.7,nal:100.8,nsl:151.9,ptr:166.5,prd:103.5,sov:102.1,stp:140.4,trn:116.1,trk:147.8,shp:121.7},
@@ -23,7 +23,7 @@ const CL_COL = ['#2E6B3E','#C47F22','#3F6FA8','#8E4B8F'];
 let D = null;
 const S = {tab:'overview', d:'ptr', metric:'yld25', cmp:'2025', analog:'2020', dp:0, dy:0, dd:0, live:false, liveSO:null, liveStatus:''};
 
-// ---------- утилиты ----------
+// утилиты
 const $ = (s) => document.querySelector(s);
 const ok = (n) => n != null && !isNaN(n);
 const fmt = (n) => ok(n) ? Math.round(n).toLocaleString('ru-RU') : '-';
@@ -61,7 +61,7 @@ function anomSeries(x) { return x.yld.map((v, i) => (ok(v) && ok(x.trend[i])) ? 
 function volatility(x) { return sd(anomSeries(x).filter(ok)); }
 function regLine(xs, ys) { const mx = mean(xs), my = mean(ys); const b = xs.reduce((s, v, i) => s + (v - mx) * (ys[i] - my), 0) / xs.reduce((s, v) => s + (v - mx) ** 2, 0); return [my - b * mx, b]; }
 
-// ---------- загрузка ----------
+// загрузка
 (window.__AGRO_DATA ? Promise.resolve(window.__AGRO_DATA) : fetch('data/agro.json').then((r) => r.json())).then((j) => {
   D = j;
   const url = new URL(location.href);
@@ -81,7 +81,7 @@ function regLine(xs, ys) { const mx = mean(xs), my = mean(ys); const b = xs.redu
   render();
 }).catch((e) => { $('#app').innerHTML = `<div class="note bad">Не удалось загрузить данные: ${esc(e.message)}</div>`; });
 
-// ---------- живая погода: осадки с 1 сентября по центрам округов ----------
+// живая погода: осадки с 1 сентября по центрам округов
 const COORDS = {krg:[45.85,41.52],trn:[45.43,41.96],ipt:[45.72,42.90],apn:[45.91,43.35],nal:[45.49,41.22],izb:[45.37,41.71],ptr:[45.33,42.85],trk:[45.50,43.58],arz:[45.37,44.22],kch:[44.68,41.82],shp:[45.13,42.03],grc:[45.06,42.47],blg:[45.10,43.43],bud:[44.78,44.17],lvk:[44.82,44.66],and:[44.46,42.51],nsl:[44.75,43.44],alx:[44.71,43.00],sov:[44.41,43.87],stp:[44.27,44.58],nft:[44.75,44.99],prd:[44.03,42.86],mvd:[44.21,43.14],grg:[44.15,43.47],kir:[43.96,43.63],krs:[43.87,44.88]};
 async function loadLive() {
   S.liveStatus = 'загрузка'; render();
@@ -103,7 +103,7 @@ async function loadLive() {
 }
 const so26 = (d) => (S.live && S.liveSO && S.liveSO[d.id] != null) ? S.liveSO[d.id] : d.so26_pct;
 
-// ---------- события ----------
+// события
 function onClick(e) {
   const b = e.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a, v = b.dataset.v;
@@ -115,7 +115,7 @@ function onClick(e) {
 }
 function onInput(e) { const k = e.target.dataset.s; if (!k) return; S[k] = Number(e.target.value); render(); }
 
-// ---------- рендер ----------
+// рендер
 function render() {
   if (!D) return;
   const tabs = [['overview','Обзор'],['crop','Урожайность и погода'],['market','Рынок и маржа'],['risk','Риски'],['model','Модель']];
@@ -125,7 +125,7 @@ function render() {
   $('#app').innerHTML = v();
 }
 
-// ---------- общие блоки ----------
+// общие блоки
 function tilesMap(valueOf, colorOf, labelOf) {
   return `<div class="mapwrap"><div class="map">${D.districts.map((x) => { const v = valueOf(x); const bg = colorOf(v, x); return `<button class="tile ${x.id === S.d ? 'sel' : ''}" data-a="d" data-v="${x.id}" title="${esc(x.name)}" aria-label="${esc(x.name)}: ${esc(labelOf(v))}" style="grid-column:${x.col};grid-row:${x.row};background:${bg};color:${fg(bg)}"><span class="s">${esc(x.short)}</span><span class="x">${esc(labelOf(v))}</span></button>`; }).join('')}</div></div>`;
 }
@@ -142,7 +142,7 @@ function heat({rows, cols, val, color, label, rowLab, colLab, rowW = 130, cellH 
 }
 const gradLegend = (lo, hi, stops, f) => `<div class="glegend"><span class="num">${f(lo)}</span><span class="gradbar" style="background:linear-gradient(90deg,${stops.join(',')})"></span><span class="num">${f(hi)}</span></div>`;
 
-// ======================= ОБЗОР =======================
+// Обзор
 function overview() {
   const d = dist(S.d);
   const metrics = {
@@ -205,7 +205,7 @@ function overview() {
     </div></section>`;
 }
 
-// ======================= УРОЖАЙНОСТЬ И ПОГОДА =======================
+// Урожайность и погода
 function crop() {
   const d = dist(S.d);
   const n = d.years.length, X = xsc(n);
@@ -254,7 +254,7 @@ function crop() {
   </div></section>`;
 }
 
-// ======================= РЫНОК И МАРЖА =======================
+// Рынок и маржа
 function market() {
   const d = dist(S.d);
   // каскад маржи
@@ -324,7 +324,7 @@ function market() {
   </div></section>`;
 }
 
-// ======================= РИСКИ =======================
+// Риски
 function risk() {
   const d = dist(S.d);
   const key = S.analog;
@@ -380,7 +380,7 @@ function risk() {
   </section>`;
 }
 
-// ======================= МОДЕЛЬ =======================
+// Модель
 function model() {
   const m = D.meta, G = D.diag;
   const coefs = D.coefs.map((c) => `<tr><td>${esc(c.name)}</td><td>${esc(c.unit)}</td><td class="r num"><b>${sg(c.b, f2)}</b></td><td class="r num">${f2(c.lo)}; ${f2(c.hi)}</td><td class="r num">${pv(c.p)}</td></tr>`).join('');

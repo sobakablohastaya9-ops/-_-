@@ -65,7 +65,7 @@ for line in (RAW / "pmo_yields_by_district.txt").read_text(encoding="utf-8").spl
     dim.loc[dim.oktmo3 == code, "area_wheat_2025"] = float(aw)
     dim.loc[dim.oktmo3 == code, "area_grain_2025"] = float(ag)
 yld = pd.DataFrame(recs).merge(dim[["id", "oktmo3"]], on="oktmo3")
-# Георгиевский: в 2014-2017 данные частично учтены под городом Георгиевском (слияние МО) -> исключаем
+# Георгиевский 2014-2019: показатели учитывались вместе с г. Георгиевском, исключаем
 bad = (yld.id == "grg") & yld.year.isin([2014, 2015, 2016, 2017, 2018, 2019])
 yld.loc[bad, ["y_wheat", "y_grain"]] = np.nan
 yld.loc[yld.y_grain > 120, "y_grain"] = np.nan  # явный выброс-артефакт
@@ -106,7 +106,7 @@ dim["zone"] = dim["n_gtk"].map(zone)
 wx = wx.sort_values(["id", "year"])
 wx["pSO_prev"] = wx.groupby("id")["pSO"].shift(1)
 
-# весна (Open-Meteo, 2004-2026): осадки марта-мая, заморозки, жара, суммы температур
+# весна: осадки марта-мая, заморозки, жара, суммы температур
 SF = ["pMarMay", "pAprMay", "pJun", "tApr", "tMarApr", "fr2", "hMay", "hJun", "gdd"]
 srec = []
 for line in (RAW / "weather_spring.txt").read_text(encoding="utf-8").splitlines():
@@ -117,7 +117,7 @@ for line in (RAW / "weather_spring.txt").read_text(encoding="utf-8").splitlines(
         srec.append(dict(id=did, year=2004 + k, **dict(zip(SF, map(float, row.split(","))))))
 sp = pd.DataFrame(srec).drop_duplicates(["id", "year"], keep="last")
 wx = wx.merge(sp, on=["id", "year"], how="left")
-# норма весны - среднее 2004-2025 по округу (ряд Open-Meteo для весны качали с 2004)
+# норма весны: среднее 2004-2025 по округу
 sn = sp[sp.year <= 2025].groupby("id")[["pMarMay", "tMarApr", "pJun"]].mean().add_prefix("s_").reset_index()
 dim = dim.merge(sn, on="id", how="left")
 
