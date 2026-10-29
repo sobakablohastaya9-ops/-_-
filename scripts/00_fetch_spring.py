@@ -1,14 +1,14 @@
-"""Шаг 0 (необязательный). Выгрузка весенней погоды по округам из Open-Meteo (архив ERA5).
+"""Выгрузка весенней погоды по округам из Open-Meteo (архив ERA5).
 
-Для каждого округа берётся суточная погода в центре округа за 2004–2026 и считается по годам:
-  pMarMay, pAprMay, pJun — осадки марта–мая, апреля–мая, июня, мм
-  tApr, tMarApr          — средняя температура апреля и марта–апреля, °C
-  fr2                    — дни с минимумом <= -2 °C с 1 апреля по 15 мая (заморозки)
-  hMay, hJun             — дни с максимумом >= 30 °C в мае и июне
-  gdd                    — сумма эффективных температур выше 5 °C, март–июнь
+Для каждого округа берется суточная погода в центре округа за 2004-2026 и считается по годам:
+  pMarMay, pAprMay, pJun - осадки марта-мая, апреля-мая, июня, мм
+  tApr, tMarApr          - средняя температура апреля и марта-апреля, °C
+  fr2                    - дни с минимумом <= -2 °C с 1 апреля по 15 мая (заморозки)
+  hMay, hJun             - дни с максимумом >= 30 °C в мае и июне
+  gdd                    - сумма эффективных температур выше 5 °C, март-июнь
 
-Запуск:  python scripts/00_fetch_spring.py          — все 26 округов (~30–40 минут из-за лимита API)
-         python scripts/00_fetch_spring.py krg ipt  — только выбранные округа (для проверки)
+Запуск:  python scripts/00_fetch_spring.py          - все 26 округов (~30-40 минут из-за лимита API)
+         python scripts/00_fetch_spring.py krg ipt  - только выбранные округа (для проверки)
 Результат печатается и сохраняется в data/raw/weather_spring_fetched.txt
 """
 import json, sys, time, urllib.request
@@ -36,8 +36,8 @@ def download(lat, lon):
             with urllib.request.urlopen(URL.format(lat=lat, lon=lon), timeout=120) as r:
                 return json.load(r)["daily"]
         except urllib.error.HTTPError as e:
-            if e.code == 429:  # лимит запросов в минуту — ждём
-                print("  лимит API, жду минуту…")
+            if e.code == 429:  # лимит запросов в минуту - ждем
+                print("  лимит API, жду минуту...")
                 time.sleep(65)
             else:
                 raise
@@ -76,6 +76,6 @@ if __name__ == "__main__":
     for k in ids:
         print("качаю", k)
         lines.append(f"{k}:{season(download(*CENTERS[k]))}")
-        print(" ", lines[-1][:80], "…")
+        print(" ", lines[-1][:80], "...")
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("сохранено:", out)

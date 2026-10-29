@@ -1,12 +1,12 @@
-"""Шаг 1. Сырые выгрузки -> аккуратные таблицы (data/clean).
+"""Подготовка данных: data/raw -> data/clean (таблицы округ x год).
 
 Источники:
-  raw/pmo_yields_by_district.txt  — БД ПМО Росстата (через tochno.st), урожайность = валовой сбор / посевная площадь
-  raw/weather_part*.txt           — Open-Meteo (ERA5), агрегаты по сезонам, 2004–2026
-  raw/weather_norms_1991_2020.txt — климатическая норма 1991–2020
-  raw/weather_spring.txt          — Open-Meteo, весна: осадки марта–мая, заморозки, жара (скрипт 00_fetch_spring.py)
-  raw/prices_wheat_sk_monthly.csv — ЕМИСС 57693, цены производителей пшеницы, край
-  raw/diesel_retail_sk_monthly.csv— ЕМИСС 31448, потребительские цены на дизель, край
+  raw/pmo_yields_by_district.txt  - БД ПМО Росстата (через tochno.st), урожайность = валовой сбор / посевная площадь
+  raw/weather_part*.txt           - Open-Meteo (ERA5), агрегаты по сезонам, 2004-2026
+  raw/weather_norms_1991_2020.txt - климатическая норма 1991-2020
+  raw/weather_spring.txt          - Open-Meteo, весна: осадки марта-мая, заморозки, жара (скрипт 00_fetch_spring.py)
+  raw/prices_wheat_sk_monthly.csv - ЕМИСС 57693, цены производителей пшеницы, край
+  raw/diesel_retail_sk_monthly.csv- ЕМИСС 31448, потребительские цены на дизель, край
 """
 from pathlib import Path
 import pandas as pd
@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW, CLEAN = ROOT / "data/raw", ROOT / "data/clean"
 CLEAN.mkdir(parents=True, exist_ok=True)
 
-# ---------- справочник округов ----------
+# справочник округов
 DISTRICTS = [
     # id, oktmo3, name, short, map_row, map_col, lat, lon
     ("krg", 530, "Красногвардейский", "Красногв.", 1, 1, 45.85, 41.52),
@@ -30,9 +30,9 @@ DISTRICTS = [
     ("arz", 507, "Арзгирский", "Арзгир.", 2, 5, 45.37, 44.22),
     ("kch", 528, "Кочубеевский", "Кочуб.", 3, 1, 44.68, 41.82),
     ("shp", 558, "Шпаковский", "Шпаков.", 3, 2, 45.13, 42.03),
-    ("grc", 517, "Грачёвский", "Грачёв.", 3, 3, 45.06, 42.47),
+    ("grc", 517, "Грачевский", "Грачев.", 3, 3, 45.06, 42.47),
     ("blg", 510, "Благодарненский", "Благод.", 3, 4, 45.10, 43.43),
-    ("bud", 512, "Будённовский", "Будён.", 3, 5, 44.78, 44.17),
+    ("bud", 512, "Буденновский", "Буден.", 3, 5, 44.78, 44.17),
     ("lvk", 536, "Левокумский", "Левок.", 3, 6, 44.82, 44.66),
     ("and", 503, "Андроповский", "Андроп.", 4, 1, 44.46, 42.51),
     ("nsl", 544, "Новоселицкий", "Новосел.", 4, 2, 44.75, 43.44),
@@ -48,7 +48,7 @@ DISTRICTS = [
 ]
 dim = pd.DataFrame(DISTRICTS, columns=["id", "oktmo3", "name", "short", "row", "col", "lat", "lon"])
 
-# ---------- урожайность ----------
+# урожайность
 YEARS = list(range(2008, 2026))
 recs = []
 for line in (RAW / "pmo_yields_by_district.txt").read_text(encoding="utf-8").splitlines():
@@ -65,13 +65,13 @@ for line in (RAW / "pmo_yields_by_district.txt").read_text(encoding="utf-8").spl
     dim.loc[dim.oktmo3 == code, "area_wheat_2025"] = float(aw)
     dim.loc[dim.oktmo3 == code, "area_grain_2025"] = float(ag)
 yld = pd.DataFrame(recs).merge(dim[["id", "oktmo3"]], on="oktmo3")
-# Георгиевский: в 2014–2017 данные частично учтены под городом Георгиевском (слияние МО) -> исключаем
+# Георгиевский: в 2014-2017 данные частично учтены под городом Георгиевском (слияние МО) -> исключаем
 bad = (yld.id == "grg") & yld.year.isin([2014, 2015, 2016, 2017, 2018, 2019])
 yld.loc[bad, ["y_wheat", "y_grain"]] = np.nan
 yld.loc[yld.y_grain > 120, "y_grain"] = np.nan  # явный выброс-артефакт
 yld = yld.drop(columns="oktmo3")
 
-# ---------- погода ----------
+# погода
 WF = ["pMJ", "gtk", "frost", "heat", "pSO", "pWin", "tMJ"]
 wrec = []
 for f in sorted(RAW.glob("weather_part*.txt")):
@@ -95,7 +95,7 @@ for line in (RAW / "weather_norms_1991_2020.txt").read_text(encoding="utf-8").sp
 norms = pd.DataFrame(nrec).drop_duplicates("id", keep="last")
 dim = dim.merge(norms, on="id", how="left")
 
-# агроклиматические зоны по норме ГТК мая–июня
+# агроклиматические зоны по норме ГТК мая-июня
 def zone(g):
     if pd.isna(g): return None
     return ("крайне засушливая" if g < 0.9 else "засушливая" if g < 1.1
@@ -106,7 +106,7 @@ dim["zone"] = dim["n_gtk"].map(zone)
 wx = wx.sort_values(["id", "year"])
 wx["pSO_prev"] = wx.groupby("id")["pSO"].shift(1)
 
-# весна (Open-Meteo, 2004–2026): осадки марта–мая, заморозки, жара, суммы температур
+# весна (Open-Meteo, 2004-2026): осадки марта-мая, заморозки, жара, суммы температур
 SF = ["pMarMay", "pAprMay", "pJun", "tApr", "tMarApr", "fr2", "hMay", "hJun", "gdd"]
 srec = []
 for line in (RAW / "weather_spring.txt").read_text(encoding="utf-8").splitlines():
@@ -117,11 +117,11 @@ for line in (RAW / "weather_spring.txt").read_text(encoding="utf-8").splitlines(
         srec.append(dict(id=did, year=2004 + k, **dict(zip(SF, map(float, row.split(","))))))
 sp = pd.DataFrame(srec).drop_duplicates(["id", "year"], keep="last")
 wx = wx.merge(sp, on=["id", "year"], how="left")
-# норма весны — среднее 2004–2025 по округу (ряд Open-Meteo для весны качали с 2004)
+# норма весны - среднее 2004-2025 по округу (ряд Open-Meteo для весны качали с 2004)
 sn = sp[sp.year <= 2025].groupby("id")[["pMarMay", "tMarApr", "pJun"]].mean().add_prefix("s_").reset_index()
 dim = dim.merge(sn, on="id", how="left")
 
-# ---------- цены ----------
+# цены
 pr = pd.read_csv(RAW / "prices_wheat_sk_monthly.csv")
 pr = pr[(pr.reg == "SK") & (pr["prod"] == "wheat")].melt(id_vars=["reg", "prod", "year"], var_name="m", value_name="price")
 pr["month"] = pr.m.str[1:].astype(int)

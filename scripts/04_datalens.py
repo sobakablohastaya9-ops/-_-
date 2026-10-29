@@ -1,4 +1,4 @@
-"""Готовые CSV для Yandex DataLens (подстраховочная BI-версия). Кодировка UTF-8, разделитель запятая."""
+"""CSV для Yandex DataLens. Кодировка UTF-8, разделитель запятая."""
 from pathlib import Path
 import json
 import numpy as np

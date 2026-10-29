@@ -1,5 +1,5 @@
-"""Шаг 2. Аналитика: тренд и аномалии, панельная модель «погода -> урожай», ретропрогноз,
-сезонность цен, паритет, модель затрат и маржи, Монте-Карло и стресс-тест. Результат -> docs/data/agro.json
+"""Анализ: тренды, панельная модель погода-урожай, ретропрогноз, цены, маржа, Монте-Карло, стресс-тест.
+Результат: docs/data/agro.json
 """
 from pathlib import Path
 import json
@@ -25,7 +25,7 @@ diesel_m = pd.read_csv(CLEAN / "fact_diesel_monthly.csv")
 SEED_YEARS = {2020, 2025, 2026}       # активные воздействия на облака (Росгидромет), по открытым публикациям
 area = dim.set_index("id")["area_wheat_2025"]
 
-# ---------------------------------------------------------------- 1. Тренд и аномалии
+# 1. Тренд и аномалии
 panel = yld.merge(wx, on=["id", "year"], how="left").merge(
     dim[["id", "n_gtk", "n_pSO", "n_pWin", "n_heat", "n_frost", "n_tMJ", "s_pMarMay"]], on="id")
 panel = panel.dropna(subset=["y_wheat", "gtk"]).copy()
@@ -42,12 +42,12 @@ panel["anom_pct"] = panel.anom / panel.trend * 100
 def features(df):
     df = df.copy()
     df["r"] = df.gtk / df.n_gtk                       # ГТК в долях нормы
-    df["lr"] = np.log(df.r.clip(lower=0.05))          # лог: равные проценты отклонения — равный эффект
-    df["dt"] = df.tMJ - df.n_tMJ                      # аномалия температуры мая–июня, °C
+    df["lr"] = np.log(df.r.clip(lower=0.05))          # лог: равные проценты отклонения - равный эффект
+    df["dt"] = df.tMJ - df.n_tMJ                      # аномалия температуры мая-июня, °C
     df["so"] = df.pSO_prev / df.n_pSO                  # осадки осени (сев) в долях нормы
     df["win"] = df.pWin / df.n_pWin                    # зимние осадки в долях нормы
     df["seed"] = df.year.isin(SEED_YEARS).astype(int)
-    df["lspr"] = np.log((df.pMarMay / df.s_pMarMay).clip(lower=0.05))   # весенние осадки (март–май), лог доли нормы
+    df["lspr"] = np.log((df.pMarMay / df.s_pMarMay).clip(lower=0.05))   # весенние осадки (март-май), лог доли нормы
     return df
 panel = features(panel)
 
@@ -57,10 +57,10 @@ model = smf.ols(FORMULA, data=panel).fit(cov_type="cluster", cov_kwds={"groups":
 pmodel = smf.ols(FORMULA_PRED, data=panel).fit()
 print(model.summary().tables[1])
 
-coef_names = {"dt": "Температура мая–июня выше нормы", "lr": "Увлажнение мая–июня (ГТК, лог)", "lspr": "Осадки весны, март–май (лог)",
-              "so": "Осадки осени при севе", "win": "Зимние осадки", "frost": "Дни заморозков (апрель–май)",
+coef_names = {"dt": "Температура мая-июня выше нормы", "lr": "Увлажнение мая-июня (ГТК, лог)", "lspr": "Осадки весны, март-май (лог)",
+              "so": "Осадки осени при севе", "win": "Зимние осадки", "frost": "Дни заморозков (апрель-май)",
               "seed": "Активные воздействия на облака"}
-units = {"dt": "+1 °C", "lr": "ГТК ×2", "lspr": "осадки ×2", "so": "+10% нормы", "win": "+10% нормы", "frost": "+1 день", "seed": "да / нет"}
+units = {"dt": "+1 °C", "lr": "ГТК x2", "lspr": "осадки x2", "so": "+10% нормы", "win": "+10% нормы", "frost": "+1 день", "seed": "да / нет"}
 scale = {"dt": 1, "lr": np.log(2), "lspr": np.log(2), "so": 0.1, "win": 0.1, "frost": 1, "seed": 1}
 ci = model.conf_int()
 coefs = []
@@ -71,14 +71,14 @@ for k in coef_names:
 r_opt = None
 within_r2 = 1 - (model.resid ** 2).sum() / ((panel.anom_pct - panel.groupby("id").anom_pct.transform("mean")) ** 2).sum()
 
-# эффект для «типичного сдвига»: стандартное отклонение признака
+# эффект для "типичного сдвига": стандартное отклонение признака
 eff = []
 for k, nm in [("dt", "Жарче нормы, +1σ"), ("lr", "Влажнее нормы, +1σ"), ("lspr", "Дождливая весна, +1σ"), ("so", "Осень при севе, +1σ"),
               ("win", "Зимние осадки, +1σ"), ("frost", "Заморозки, +1σ"), ("seed", "Искусств. осадки, да")]:
     sd = panel[k].std() if k != "seed" else 1
     eff.append(dict(label=nm, e=model.params[k] * sd, lo=ci.loc[k, 0] * sd, hi=ci.loc[k, 1] * sd, sd=float(sd)))
 
-# ---------------------------------------------------------------- 2. Ретропрогноз (leave-one-year-out)
+# 2. Ретропрогноз (leave-one-year-out)
 bt = []
 for Y in sorted(panel.year.unique()):
     if Y < 2011:
@@ -100,7 +100,7 @@ mape_naive = float((abs(bt.naive - bt.act) / bt.act).mean() * 100)
 sd_bt = float(np.sqrt(((bt.pred - bt.act) ** 2).mean()))
 print(f"MAPE model {mape:.1f}% vs trend-only {mape_naive:.1f}%")
 
-# ---------------------------------------------------------------- 3. Прогноз 2026 по погоде (урожай ещё не опубликован Росстатом)
+# 3. Прогноз 2026 по погоде (урожай еще не опубликован Росстатом)
 w26 = features(wx[wx.year == 2026].merge(dim[["id", "n_gtk", "n_pSO", "n_pWin", "n_tMJ", "s_pMarMay"]], on="id"))
 w26 = w26[w26.id.isin(trends)]
 w26["trend"] = [np.polyval(trends[d], 2026) for d in w26.id]
@@ -109,7 +109,7 @@ w26["pred"] = w26.trend * (1 + w26.pred_pct / 100)
 nowcast26 = float(np.average(w26.pred, weights=w26.id.map(area)))
 trend26 = float(np.average(w26.trend, weights=w26.id.map(area)))
 
-# ---------------------------------------------------------------- 4. Цены: сезонность и паритет
+# 4. Цены: сезонность и паритет
 pm = price_m.copy()
 pm["date"] = pd.to_datetime(dict(year=pm.year, month=pm.month, day=1))
 pm = pm.set_index("date").asfreq("MS")
@@ -132,16 +132,16 @@ par["diesel_t"] = par.diesel * 1190          # руб/л -> руб/т (плот�
 par["parity"] = par.diesel_t / par.price
 par_mean, par_sd = float(par.parity.mean()), float(par.parity.std())
 
-# годовая цена урожая: среднее июль(t) – июнь(t+1), что есть
+# годовая цена урожая: среднее июль(t) - июнь(t+1), что есть
 def harvest_price(y):
     s = pm.price[(pm.index >= f"{y}-07-01") & (pm.index <= f"{y+1}-06-01")]
     return float(s.mean()) if len(s) else np.nan
 hp = {y: harvest_price(y) for y in range(2017, 2027)}
 
-# ---------------------------------------------------------------- 5. Модель затрат и маржа
-# Структура — техкарта озимой пшеницы 2023 (direct.farm, 60,8 тыс. ₽/га при 54,3 ц/га) без амортизации:
+# 5. Модель затрат и маржа
+# Структура - техкарта озимой пшеницы 2023 (direct.farm, 60,8 тыс. ₽/га при 54,3 ц/га) без амортизации:
 # переменные (удобрения 13,1 + СЗР 4,85 + семена 4,73) масштабируются интенсивностью (урожай тренда / 54,3),
-# ГСМ 4,21 — интенсивностью и ценой дизеля, ФОТ+прочие (23,8) — 75% как постоянная часть.
+# ГСМ 4,21 - интенсивностью и ценой дизеля, ФОТ+прочие (23,8) - 75% как постоянная часть.
 diesel_y = dm.groupby("year").diesel.mean().to_dict()
 diesel_y[2027] = float(dm.diesel.iloc[-1])
 def general_index(y):      # неэнергетические затраты: +7% в год к 2023 (допущение)
@@ -161,7 +161,7 @@ for d, g in yld.groupby("id"):
         t = np.polyval(trends[d], y)
         mg.append(dict(id=d, year=y, yld=r.y_wheat, price=hp[y], cost=cost(t, y),
                        margin=r.y_wheat / 10 * hp[y] - cost(t, y)))
-for _, r in w26.iterrows():     # 2026: урожай — прогноз модели, цена — июль–сентябрь 2026
+for _, r in w26.iterrows():     # 2026: урожай - прогноз модели, цена - июль-сентябрь 2026
     mg.append(dict(id=r.id, year=2026, yld=r.pred, price=hp[2026], cost=cost(r.trend, 2026),
                    margin=r.pred / 10 * hp[2026] - cost(r.trend, 2026)))
 mg = pd.DataFrame(mg)
@@ -170,9 +170,9 @@ krai_m = mg.groupby("year").apply(lambda t: pd.Series(dict(
     cost=np.average(t.cost, weights=t.id.map(area)), margin=np.average(t.margin, weights=t.id.map(area)),
     loss_share=float((t.id.map(area) * (t.margin < 0)).sum() / t.id.map(area).sum())))).reset_index()
 
-# ---------------------------------------------------------------- 6. Монте-Карло и стресс-тест на 2027
-# Исторический подход: к тренду урожайности 2027 года применяются ФАКТИЧЕСКИЕ отклонения урожайности
-# реальных сезонов (по каждому округу), чтобы сохранить пространственную корреляцию — сезон берётся целиком.
+# 6. Монте-Карло и стресс-тест на 2027
+# Исторический подход: к тренду урожайности 2027 года применяются фактические отклонения урожайности
+# реальных сезонов (по каждому округу), чтобы сохранить пространственную корреляцию - сезон берется целиком.
 P0 = float(pm.price.iloc[-12:].mean())                                  # средняя цена за последние 12 мес.
 ann = pd.Series(hp).dropna()
 price_shocks = (ann / ann.shift(1) - 1).dropna().values                 # исторические годовые изменения цены
@@ -214,7 +214,7 @@ for y in [2010, 2013, 2019, 2020, 2021, 2024, 2025]:
     stress[y] = res
 normal = {d: dict(yld=mc[d]["trend"], margin=mc[d]["trend"] / 10 * P0 - mc[d]["cost"]) for d in mc}
 
-# ---------------------------------------------------------------- 6b. Дополнительная статистика для дашборда
+# 6b. Дополнительная статистика
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.stattools import durbin_watson, jarque_bera
@@ -307,7 +307,7 @@ py = krai_m[krai_m.year <= 2025][["year", "yld", "price"]]
 py_r = stats.pearsonr(py.yld, py.price)
 price_yield = dict(pts=[[int(a), round(float(b), 1), round(float(c))] for a, b, c in py.values], r=float(py_r.statistic), p=float(py_r.pvalue))
 
-# ---------------------------------------------------------------- 7. Сборка JSON для витрины
+# 7. Сборка JSON для дашборда
 def r1(x): return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), 1)
 def r2_(x): return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), 2)
 
